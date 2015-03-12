@@ -1,0 +1,22 @@
+{
+    "name": "ideatic/payments",
+    "description": "Librería para la gestión sencilla de pagos mediante TPV Redsys y Paypal",
+    "keywords": ["payments", "tpv", "redsys", "paypal"],
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Javier Marín",
+            "email": "contacto@ideatic.net",
+            "homepage": "http://www.ideatic.net/"
+        }
+    ],
+    "require": {
+        "php": ">=5.4"
+    },
+    "autoload": {
+        "psr-0": {
+            "Tinyfier_": "Payment/"
+        }
+    }
+}
