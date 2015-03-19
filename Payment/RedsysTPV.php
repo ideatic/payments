@@ -137,7 +137,7 @@ class Payment_RedsysTPV extends Payment_Base
         }
 
         //Comprobar firma
-        $fields = $this->fields(false);
+        $fields = $this->fields();
         $message = $fields['Ds_Merchant_Amount'] . $fields['Ds_Merchant_Order'] . $fields['Ds_Merchant_MerchantCode'] . $fields['Ds_Merchant_Currency'] .
                    $response . $this->secret_key;
         $received_signature = isset($post_data['Ds_Signature']) ? $post_data['Ds_Signature'] : false;
