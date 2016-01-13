@@ -76,10 +76,12 @@ class Payment_Paypal extends Payment_Base
             'no_shipping'   => 1, //No solicitar dirección de envío,
             'return'        => $this->url_success,
             'cancel_return' => $this->url_error,
+            'charset'       => 'utf-8',
         ];
 
         if (!empty($this->url_logo)) {
-            $fields['cpp_header_image'] = $this->url_logo;
+            $fields['cpp_logo_image'] = $this->url_logo;
+            $fields['image_url'] = $this->url_logo;
         }
         if (!empty($this->return_text)) {
             $fields['cbt'] = $this->return_text;
