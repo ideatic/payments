@@ -35,10 +35,13 @@ class Payment_RedsysTPV extends Payment_Base
     public $secret_key;
 
 
-    public function __construct($app_name)
+    public function __construct($app_name, $test_mode = false)
     {
         parent::__construct($app_name);
         $this->language = '000'; //Autodetectar
+        $this->url_payment = $test_mode ? 'https://sis-t.redsys.es:25443/sis/realizarPago' : 'https://sis.redsys.es/sis/realizarPago';
+
+        require_once dirname(__FILE__) . DIRECTORY_SEPARATOR . 'libs/apiRedsys.php';
     }
 
     /**
@@ -50,6 +53,7 @@ class Payment_RedsysTPV extends Payment_Base
      */
     public function fields()
     {
+
         $amount = number_format($this->amount, 2);
 
         if ($this->currency == 'EUR') { //Para Euros las dos últimas posiciones se consideran decimales
@@ -62,51 +66,41 @@ class Payment_RedsysTPV extends Payment_Base
         //Ajustar tamaño del identificador de pedido (minimo 4 caracteres)
         $order = str_pad($this->order, 4, '0', STR_PAD_LEFT);
 
-        //Calcular firma
-        $message = $amount . $order . $this->merchant_id . $currency . $this->transaction_type . $this->url_notification . $this->secret_key;
-        $signature = strtoupper(sha1($message));
+        //Generar parámetros
+        $redsys = new RedsysAPI();
+        $redsys->setParameter("DS_MERCHANT_AMOUNT", $amount);
+        $redsys->setParameter("DS_MERCHANT_ORDER", $order);
+        $redsys->setParameter("DS_MERCHANT_MERCHANTCODE", $this->merchant_id);
+        $redsys->setParameter("DS_MERCHANT_CURRENCY", $currency);
+        $redsys->setParameter("DS_MERCHANT_TRANSACTIONTYPE", $this->transaction_type);
+        $redsys->setParameter("DS_MERCHANT_TERMINAL", $this->terminal);
+        $redsys->setParameter("DS_MERCHANT_MERCHANTURL", $this->url_notification);
+
+        if ($this->merchant_name) {
+            $redsys->setParameter("DS_MERCHANT_MERCHANTNAME", substr($this->merchant_name, 0, 25));
+        }
+
+        if ($this->product_description) {
+            $redsys->setParameter("DS_MERCHANT_PRODUCTDESCRIPTION", substr($this->product_description, 0, 125));
+        }
+
+        if ($this->buyer_name) {
+            $redsys->setParameter("DS_MERCHANT_TITULAR", substr($this->buyer_name, 0, 60));
+        }
+
+        if ($this->language) {
+            $redsys->setParameter("DS_MERCHANT_CONSUMERLANGUAGE", $this->language);
+        }
+
+        $redsys->setParameter("DS_MERCHANT_URLOK", $this->url_success);
+        $redsys->setParameter("DS_MERCHANT_URLKO", $this->url_error);
 
         //Devolver campos
         return [
-            'Ds_Merchant_Amount'             => $amount,
-            'Ds_Merchant_Currency'           => $currency,
-            'Ds_Merchant_Order'              => $order,
-            'Ds_Merchant_MerchantCode'       => $this->merchant_id,
-            'Ds_Merchant_Terminal'           => $this->terminal,
-            'Ds_Merchant_TransactionType'    => $this->transaction_type,
-            'Ds_Merchant_Titular'            => substr($this->buyer_name, 0, 60),
-            'Ds_Merchant_MerchantName'       => substr($this->merchant_name, 0, 25),
-            'Ds_Merchant_ProductDescription' => substr($this->product_description, 0, 125),
-            'Ds_Merchant_ConsumerLanguage'   => $this->language,
-            'Ds_Merchant_MerchantURL'        => $this->url_notification,
-            'Ds_Merchant_UrlOK'              => $this->url_success,
-            'Ds_Merchant_UrlKO'              => $this->url_error,
-            'Ds_Merchant_MerchantSignature'  => $signature,
+            'Ds_SignatureVersion'   => 'HMAC_SHA256_V1',
+            'Ds_MerchantParameters' => $redsys->createMerchantParameters(),
+            'Ds_Signature'          => $redsys->createMerchantSignature($this->secret_key),
         ];
-    }
-
-    protected function _currency_name_to_code($currency_name)
-    {
-        switch ($currency_name) {
-            case 'EUR':
-                return 978;
-
-            case 'USD':
-                return 840;
-
-            case 'GBP':
-                return 426;
-
-            case 'JPY':
-                return 392;
-
-            case 'CNY':
-                return 156;
-
-            default:
-                throw new InvalidArgumentException("Unrecognized currency '$currency_name', please use its ISO 4217 numeric code instead");
-        }
-
     }
 
     /**
@@ -123,29 +117,48 @@ class Payment_RedsysTPV extends Payment_Base
             $post_data = $_POST;
         }
 
-        //Comprobar respuesta
-        /*
-         * 0000 a 0099 Transacción autorizada para pagos y preautorizaciones
-         * 0900 Transacción autorizada para devoluciones y confirmaciones
-         * */
+        $redsys = new RedsysAPI();
 
-        $response = isset($post_data['Ds_Response']) ? $post_data['Ds_Response'] : -1;
-        if ($response < 0 || $response > 99) {
-            if ($response != 900) {
-                throw new Payment_Exception("Invalid response, received Ds_Response '$response'");
-            }
-        }
+        $parameters = $post_data['Ds_MerchantParameters'];
+        $redsys->decodeMerchantParameters($parameters);
 
         //Comprobar firma
-        $fields = $this->fields();
-        $message = $fields['Ds_Merchant_Amount'] . $fields['Ds_Merchant_Order'] . $fields['Ds_Merchant_MerchantCode'] . $fields['Ds_Merchant_Currency'] .
-                   $response . $this->secret_key;
-        $received_signature = isset($post_data['Ds_Signature']) ? $post_data['Ds_Signature'] : false;
-        $signature = strtoupper(sha1($message));
-        if ($received_signature != $signature) {
+        $received_signature = $post_data['Ds_Signature'];
+        $signature = $redsys->createMerchantSignatureNotif($this->secret_key, $parameters);
+
+        if ($signature !== $received_signature) {
             throw new Payment_Exception("Invalid signature, received '$received_signature', expected '$signature'");
         }
 
+        //Comprobar respuesta
+        /*
+         * ﻿0000 a 0099	Transacción autorizada para pagos y preautorizaciones
+         * 0900	Transacción autorizada para devoluciones y confirmaciones
+         *
+         */
+        $response = $redsys->getParameter('Ds_Response');
+        if ($response >= 101 && $response != 900) {
+            throw new Payment_Exception("Invalid response, received Ds_Response '$response'");
+        }
+
         return true;
+    }
+
+    protected function _currency_name_to_code($currency_name)
+    {
+        $currencies = [
+            'EUR' => 978,
+            'USD' => 840,
+            'GBP' => 426,
+            'JPY' => 392,
+            'CNY' => 156,
+        ];
+
+        $currency_name = strtoupper($currency_name);
+        if (!isset($currencies[$currency_name])) {
+            throw new InvalidArgumentException("Unrecognized currency '$currency_name', please use its ISO 4217 numeric code instead");
+        }
+
+        return $currencies[$currency_name];
     }
 }
