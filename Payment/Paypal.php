@@ -139,7 +139,7 @@ Si recibe la notificación "NO VÁLIDO", debe tratarla como sospechosa e investi
                            ->execute();
 
         if ($response->status() != 200 || strcasecmp($response->body(), 'VERIFIED') != 0) {
-            throw new Payment_Exception('Invalid Paypal response', $response);
+            throw new Payment_Exception('Invalid Paypal response: ' . $response->body());
         }
 
         if (isset($this->find_txnid_callback, $this->store_txnid_callback)) {
