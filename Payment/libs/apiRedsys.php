@@ -25,7 +25,7 @@ class RedsysAPI
 {
 
     /******  Array de DatosEntrada ******/
-    var $vars_pay = array();
+    var $vars_pay = [];
 
     /******  Set parameter ******/
     function setParameter($key, $value)
@@ -51,7 +51,7 @@ class RedsysAPI
     function encrypt_3DES($message, $key)
     {
         // Se establece un IV por defecto
-        $bytes = array(0, 0, 0, 0, 0, 0, 0, 0); //byte [] IV = {0, 0, 0, 0, 0, 0, 0, 0}
+        $bytes = [0, 0, 0, 0, 0, 0, 0, 0]; //byte [] IV = {0, 0, 0, 0, 0, 0, 0, 0}
         $iv = implode(array_map("chr", $bytes)); //PHP 4 >= 4.0.2
 
         // Se cifra

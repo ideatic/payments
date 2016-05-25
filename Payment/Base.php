@@ -64,8 +64,7 @@ abstract class Payment_Base
      * @var string
      */
     public $url_payment;
-
-
+    
     /**
      * Dirección URL cargada de manera transparente donde se recibe la notificación del pago.
      * @var string
@@ -151,10 +150,11 @@ abstract class Payment_Base
      * Comprueba que la notificación de pago recibida es correcta y auténtica
      *
      * @param array $post_data Datos POST incluidos con la notificación
+     * @param float $fee Valor completado con la comisión aplicada a la operación
      *
      * @return bool
      */
-    public abstract function validate_notification($post_data = null);
+    public abstract function validate_notification($post_data = null, &$fee=0);
 
 
     /**

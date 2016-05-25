@@ -34,6 +34,11 @@ class Payment_RedsysTPV extends Payment_Base
      */
     public $secret_key;
 
+    /**
+     * % sobre el total que se aplica de comisión para la operación. Se puede indicar un callable que será el encargado de calcular la comisión
+     * @var float|callable
+     */
+    public $fee = 0;
 
     public function __construct($app_name, $test_mode = false)
     {
@@ -111,7 +116,7 @@ class Payment_RedsysTPV extends Payment_Base
      * @throws Payment_Exception
      * @return bool
      */
-    public function validate_notification($post_data = null)
+    public function validate_notification($post_data = null, &$fee = 0)
     {
         if (!isset($post_data)) {
             $post_data = $_POST;
@@ -141,6 +146,13 @@ class Payment_RedsysTPV extends Payment_Base
             $error_codes = self::error_codes();
             $description = isset($error_codes[$response]) ? $error_codes[$response] : 'Unknown response code';
             throw new Payment_Exception("Invalid Ds_Response '$response' ($description)");
+        }
+
+        //Calcular comisión
+        if (is_numeric($this->fee)) {
+            $fee = $this->amount * $this->fee;
+        } else {
+            call_user_func($this->fee, $response);
         }
 
         return true;

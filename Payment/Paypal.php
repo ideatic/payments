@@ -98,7 +98,7 @@ class Payment_Paypal extends Payment_Base
      * @throws Payment_Exception
      * @return bool
      */
-    public function validate_notification($post_data = null)
+    public function validate_notification($post_data = null, &$fee = 0)
     {
         if (!isset($post_data)) {
             $post_data = $_POST;
@@ -142,6 +142,9 @@ Si recibe la notificación "NO VÁLIDO", debe tratarla como sospechosa e investi
             throw new Payment_Exception('Invalid Paypal response: ' . $response->body());
         }
 
+        $fee = floatval($post_data['mc_fee']);
+
+        //Comprobar unicidad y almacenar el ID de Transacción de Paypal
         if (isset($this->find_txnid_callback, $this->store_txnid_callback)) {
             $txn_id = $post_data['txn_id'];
             $found = call_user_func($this->find_txnid_callback, $txn_id);
