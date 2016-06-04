@@ -124,10 +124,16 @@ Si recibe la notificación "NO VÁLIDO", debe tratarla como sospechosa e investi
         if ($post_data['receiver_email'] != $this->merchant_id) {
             throw new Payment_Exception("receiver_email != $this->merchant_id");
         }
-        if (strcasecmp($post_data['payment_status'], 'completed') != 0) {
+
+        $refund = false;
+        if (strcasecmp($post_data['payment_status'], 'refunded') == 0) { //Pago devuelto
+            $refund = true;
+        } elseif (strcasecmp($post_data['payment_status'], 'completed') != 0) {
             throw new Payment_Exception('Payment_status not completed');
         }
-        if ($post_data['mc_gross'] != $this->amount || strcasecmp($post_data['mc_currency'], $this->currency) != 0) {
+
+        $expected_gross = $refund ? ($this->amount * -1) : $this->amount;
+        if ($post_data['mc_gross'] != $expected_gross || strcasecmp($post_data['mc_currency'], $this->currency) != 0) {
             throw new Payment_Exception('mc_gross or mc_currency invalid');
         }
 
@@ -143,6 +149,10 @@ Si recibe la notificación "NO VÁLIDO", debe tratarla como sospechosa e investi
         }
 
         $fee = floatval($post_data['mc_fee']);
+
+        if ($refund) {
+            throw new Payment_Exception('Payment refunded', Payment_Exception::REASON_REFUND);
+        }
 
         //Comprobar unicidad y almacenar el ID de Transacción de Paypal
         if (isset($this->find_txnid_callback, $this->store_txnid_callback)) {

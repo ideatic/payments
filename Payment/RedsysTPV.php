@@ -58,7 +58,6 @@ class Payment_RedsysTPV extends Payment_Base
      */
     public function fields()
     {
-
         $amount = number_format($this->amount, 2);
 
         if ($this->currency == 'EUR') { //Para Euros las dos últimas posiciones se consideran decimales
