@@ -141,7 +141,7 @@ class Payment_RedsysTPV extends Payment_Base
         $signature = $redsys->createMerchantSignatureNotif($this->secret_key, $parameters);
 
         if ($signature !== $received_signature) {
-            throw new Payment_Exception("Invalid signature, received '$received_signature', expected '$signature'");
+            throw new Payment_Exception("Invalid signature, received '{$received_signature}', expected '{$signature}'");
         }
 
         //Comprobar respuesta
@@ -154,7 +154,7 @@ class Payment_RedsysTPV extends Payment_Base
         if ($response >= 101 && $response != 900) {
             $error_codes = self::error_codes();
             $description = isset($error_codes[$response]) ? $error_codes[$response] : 'Unknown response code';
-            throw new Payment_Exception("Invalid Ds_Response '$response' ($description)");
+            throw new Payment_Exception("Invalid Ds_Response '{$response}' ({$description})");
         }
 
         //Calcular comisión
@@ -162,6 +162,15 @@ class Payment_RedsysTPV extends Payment_Base
             $fee = $this->amount * $this->fee;
         } else {
             call_user_func($this->fee, $response);
+        }
+
+        //Comprobar si era una devolución
+        $transaction_type = $redsys->getParameter('Ds_TransactionType');
+
+        if ($transaction_type == self::TRANSACTION_REFUND) {
+            throw new Payment_Exception('Payment refunded', Payment_Exception::REASON_REFUND);
+        } elseif ($transaction_type != self::TRANSACTION_PAYMENT) {
+            throw new Payment_Exception("Invalid transaction type, received '{$transaction_type}', expected '" . self::TRANSACTION_PAYMENT . "'");
         }
 
         return true;
