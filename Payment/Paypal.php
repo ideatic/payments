@@ -10,7 +10,6 @@
  */
 class Payment_Paypal extends Payment_Base
 {
-
     const TRANSACTION_PAYMENT = '_xclick';
     const TRANSACTION_SUBSCRIPTION = '_xclick-subscriptions';
     const TRANSACTION_AUTO_BILLING = '_xclick-auto-billing';

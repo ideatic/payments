@@ -5,6 +5,11 @@
  */
 class Payment_RedsysTPV extends Payment_Base
 {
+    const TRANSACTION_PAYMENT = '0';
+    const TRANSACTION_PAYMENT_AUTH = '1';
+    const TRANSACTION_REFUND = '3';
+    const TRANSACTION_SUBSCRIPTION = '5';
+
     /**
      * Identificador del terminal TPV utilizado
      * @var string
@@ -17,16 +22,21 @@ class Payment_RedsysTPV extends Payment_Base
      * posibles valores son:
      * 0 – Autorización
      * 1 – Preautorización
-     * 2 – Confirmación
+     * 2 – Confirmación de preautorización
      * 3 – Devolución Automática
-     * 4 – Pago Referencia
      * 5 – Transacción Recurrente
      * 6 – Transacción Sucesiva
-     * 7 – Autenticación
-     * 8 – Confirmación de Autenticación
+     * 7 – Pre-autenticación
+     * 8 – Confirmación de pre-autenticación
+     * 9 – Anulación de Preautorización
+     * O – Autorización en diferido
+     * P– Confirmación de autorización en diferido
+     * Q - Anulación de autorización en diferido
+     * R – Cuota inicial diferido
+     * S – Cuota sucesiva diferido
      * @var string
      */
-    public $transaction_type = '0';
+    public $transaction_type = self::TRANSACTION_PAYMENT;
 
     /**
      * Clave secreta proporcionada por el banco para comprobar la integridad de la firma

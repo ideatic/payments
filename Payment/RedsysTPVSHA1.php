@@ -2,6 +2,7 @@
 
 /**
  * Herramienta para la gestión de un TPV Virtual Redsys basado en el estándar SHA1
+ * @deprecated
  */
 class Payment_RedsysTPVSHA1 extends Payment_Base
 {
