@@ -125,10 +125,11 @@ Si recibe la notificación "NO VÁLIDO", debe tratarla como sospechosa e investi
         }
 
         $refund = false;
-        if (strcasecmp($post_data['payment_status'], 'refunded') == 0) { //Pago devuelto
+        $status = isset($post_data['payment_status']) ? $post_data['payment_status'] : '';
+        if (strcasecmp($status, 'refunded') == 0 || strcasecmp($status, 'reversed') == 0) { // Pago devuelto
             $refund = true;
-        } elseif (strcasecmp($post_data['payment_status'], 'completed') != 0) {
-            throw new Payment_Exception('Payment_status not completed');
+        } elseif (strcasecmp($status, 'completed') != 0) {
+            throw new Payment_Exception("payment_status != 'completed'", $status);
         }
 
         $expected_gross = $refund ? ($this->amount * -1) : $this->amount;
