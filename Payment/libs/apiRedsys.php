@@ -50,8 +50,18 @@ class RedsysAPI
     /******  3DES Function  ******/
     function encrypt_3DES($message, $key)
     {
-        $l = ceil(strlen($message) / 8) * 8;
-        return substr(openssl_encrypt($message . str_repeat("\0", $l - strlen($message)), 'des-ede3-cbc', $key, OPENSSL_RAW_DATA, "\0\0\0\0\0\0\0\0"), 0, $l);
+        if (PHP_MAJOR_VERSION >= 7) {
+            $l = ceil(strlen($message) / 8) * 8;
+            return substr(openssl_encrypt($message . str_repeat("\0", $l - strlen($message)), 'des-ede3-cbc', $key, OPENSSL_RAW_DATA, "\0\0\0\0\0\0\0\0"), 0, $l);
+        } else {
+            // Se establece un IV por defecto
+            $bytes = [0, 0, 0, 0, 0, 0, 0, 0]; //byte [] IV = {0, 0, 0, 0, 0, 0, 0, 0}
+            $iv = implode(array_map("chr", $bytes)); //PHP 4 >= 4.0.2
+
+            // Se cifra
+            $ciphertext = mcrypt_encrypt(MCRYPT_3DES, $key, $message, MCRYPT_MODE_CBC, $iv); //PHP 4 >= 4.0.2
+            return $ciphertext;
+        }
     }
 
     /******  Base64 Functions  ******/
