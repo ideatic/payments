@@ -63,8 +63,8 @@ class Payment_RedsysTPV extends Payment_Base
      * Obtiene los campos que deben ser enviados mediante POST al TPV
      *
      * @return array|string
-     * @throws InvalidArgumentException
      * @return string[]|string
+     * @throws InvalidArgumentException
      */
     public function fields()
     {
@@ -132,8 +132,8 @@ class Payment_RedsysTPV extends Payment_Base
      *
      * @param array $post_data Datos POST incluidos con la notificación
      *
-     * @throws Payment_Exception
      * @return bool
+     * @throws Payment_Exception
      */
     public function validate_notification($post_data = null, &$fee = 0)
     {
@@ -142,6 +142,10 @@ class Payment_RedsysTPV extends Payment_Base
         }
 
         $redsys = new RedsysAPI();
+
+        if (!isset($post_data['Ds_MerchantParameters']) || !isset($post_data['Ds_Signature'])) {
+            throw new Payment_Exception("Invalid parameteres", $post_data);
+        }
 
         $parameters = $post_data['Ds_MerchantParameters'];
         $redsys->decodeMerchantParameters($parameters);
@@ -186,7 +190,7 @@ class Payment_RedsysTPV extends Payment_Base
         if (is_numeric($this->fee)) {
             $fee = self::_ceil_precission($amount * $this->fee, 2);
         } else {
-            $fee = call_user_func($this->fee, $response);
+            $fee = call_user_func($this->fee, $amount);
         }
 
         // Comprobar si era una devolución
