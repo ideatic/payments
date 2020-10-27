@@ -1,14 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Herramienta para la gestión de un TPV Virtual Redsys
  */
 class Payment_RedsysTPV extends Payment_Base
 {
-    const TRANSACTION_PAYMENT = '0';
-    const TRANSACTION_PAYMENT_AUTH = '1';
-    const TRANSACTION_REFUND = '3';
-    const TRANSACTION_SUBSCRIPTION = '5';
+    public const TRANSACTION_PAYMENT = '0';
+    public const TRANSACTION_PAYMENT_AUTH = '1';
+    public const TRANSACTION_REFUND = '3';
+    public const TRANSACTION_SUBSCRIPTION = '5';
 
     /**
      * Identificador del terminal TPV utilizado
@@ -36,13 +38,13 @@ class Payment_RedsysTPV extends Payment_Base
      * S – Cuota sucesiva diferido
      * @var string
      */
-    public $transaction_type = self::TRANSACTION_PAYMENT;
+    public $transactionType = self::TRANSACTION_PAYMENT;
 
     /**
      * Clave secreta proporcionada por el banco para comprobar la integridad de la firma
      * @var string
      */
-    public $secret_key;
+    public $secretKey;
 
     /**
      * % sobre el total que se aplica de comisión para la operación. Se puede indicar un callable que será el encargado de calcular la comisión
@@ -50,11 +52,11 @@ class Payment_RedsysTPV extends Payment_Base
      */
     public $fee = 0;
 
-    public function __construct($app_name, $test_mode = false)
+    public function __construct($appName, $testMode = false)
     {
-        parent::__construct($app_name);
+        parent::__construct($appName);
         $this->language = '000'; //Autodetectar
-        $this->url_payment = $test_mode ? 'https://sis-t.redsys.es:25443/sis/realizarPago' : 'https://sis.redsys.es/sis/realizarPago';
+        $this->urlPayment = $testMode ? 'https://sis-t.redsys.es:25443/sis/realizarPago' : 'https://sis.redsys.es/sis/realizarPago';
 
         require_once dirname(__FILE__) . DIRECTORY_SEPARATOR . 'libs/apiRedsys.php';
     }
@@ -63,10 +65,9 @@ class Payment_RedsysTPV extends Payment_Base
      * Obtiene los campos que deben ser enviados mediante POST al TPV
      *
      * @return array|string
-     * @return string[]|string
      * @throws InvalidArgumentException
      */
-    public function fields()
+    public function fields(): array
     {
         $amount = number_format($this->amount, 2);
 
@@ -78,13 +79,13 @@ class Payment_RedsysTPV extends Payment_Base
         if (is_numeric($this->currency)) {
             $currency = $this->currency;
         } else {
-            $currencies = $this->_currency_table();
-            $currency_name = strtoupper($this->currency);
-            if (!isset($currencies[$currency_name])) {
-                throw new InvalidArgumentException("Unrecognized currency '{$currency_name}', please use its ISO 4217 numeric code instead");
+            $currencies = $this->_currencyTable();
+            $currencyName = strtoupper($this->currency);
+            if (!isset($currencies[$currencyName])) {
+                throw new InvalidArgumentException("Unrecognized currency '{$currencyName}', please use its ISO 4217 numeric code instead");
             }
 
-            $currency = $currencies[$currency_name];
+            $currency = $currencies[$currencyName];
         }
 
         // Ajustar tamaño del identificador de pedido (minimo 4 caracteres)
@@ -94,89 +95,90 @@ class Payment_RedsysTPV extends Payment_Base
         $redsys = new RedsysAPI();
         $redsys->setParameter('DS_MERCHANT_AMOUNT', $amount);
         $redsys->setParameter('DS_MERCHANT_ORDER', $order);
-        $redsys->setParameter('DS_MERCHANT_MERCHANTCODE', $this->merchant_id);
+        $redsys->setParameter('DS_MERCHANT_MERCHANTCODE', $this->merchantID);
         $redsys->setParameter('DS_MERCHANT_CURRENCY', $currency);
-        $redsys->setParameter('DS_MERCHANT_TRANSACTIONTYPE', $this->transaction_type);
+        $redsys->setParameter('DS_MERCHANT_TRANSACTIONTYPE', $this->transactionType);
         $redsys->setParameter('DS_MERCHANT_TERMINAL', $this->terminal);
-        $redsys->setParameter('DS_MERCHANT_MERCHANTURL', $this->url_notification);
+        $redsys->setParameter('DS_MERCHANT_MERCHANTURL', $this->urlNotification);
 
-        if ($this->merchant_name) {
-            $redsys->setParameter('DS_MERCHANT_MERCHANTNAME', substr($this->merchant_name, 0, 25));
+        if ($this->merchantName) {
+            $redsys->setParameter('DS_MERCHANT_MERCHANTNAME', substr($this->merchantName, 0, 25));
         }
 
-        if ($this->product_description) {
-            $redsys->setParameter('DS_MERCHANT_PRODUCTDESCRIPTION', substr($this->product_description, 0, 125));
+        if ($this->productDescription) {
+            $redsys->setParameter('DS_MERCHANT_PRODUCTDESCRIPTION', substr($this->productDescription, 0, 125));
         }
 
-        if ($this->buyer_name) {
-            $redsys->setParameter('DS_MERCHANT_TITULAR', substr($this->buyer_name, 0, 60));
+        if ($this->buyerName) {
+            $redsys->setParameter('DS_MERCHANT_TITULAR', substr($this->buyerName, 0, 60));
         }
 
         if ($this->language) {
             $redsys->setParameter('DS_MERCHANT_CONSUMERLANGUAGE', $this->language);
         }
 
-        $redsys->setParameter('DS_MERCHANT_URLOK', $this->url_success);
-        $redsys->setParameter('DS_MERCHANT_URLKO', $this->url_error);
+        $redsys->setParameter('DS_MERCHANT_URLOK', $this->urlSuccess);
+        $redsys->setParameter('DS_MERCHANT_URLKO', $this->urlError);
 
         // Devolver campos
         return [
             'Ds_SignatureVersion'   => 'HMAC_SHA256_V1',
             'Ds_MerchantParameters' => $redsys->createMerchantParameters(),
-            'Ds_Signature'          => $redsys->createMerchantSignature($this->secret_key),
+            'Ds_Signature'          => $redsys->createMerchantSignature($this->secretKey),
         ];
     }
 
     /**
      * Comprueba que la notificación de pago recibida es correcta y auténtica
      *
-     * @param array $post_data Datos POST incluidos con la notificación
+     * @param array|null $postData Datos POST incluidos con la notificación
+     * @param int        $fee
      *
      * @return bool
      * @throws Payment_Exception
      */
-    public function validate_notification($post_data = null, &$fee = 0)
+    public function validateNotification(array $postData = null, float &$fee = 0): bool
     {
-        if (!isset($post_data)) {
-            $post_data = $_POST;
+        if (!isset($postData)) {
+            $postData = $_POST;
         }
 
         $redsys = new RedsysAPI();
 
-        if (!isset($post_data['Ds_MerchantParameters']) || !isset($post_data['Ds_Signature'])) {
-            throw new Payment_Exception("Invalid parameteres", $post_data);
+        if (!isset($postData['Ds_MerchantParameters']) || !isset($postData['Ds_Signature'])) {
+            throw new Payment_Exception("Invalid parameteres", $postData);
         }
 
-        $parameters = $post_data['Ds_MerchantParameters'];
+        $parameters = $postData['Ds_MerchantParameters'];
         $redsys->decodeMerchantParameters($parameters);
 
         // Comprobar firma
-        $received_signature = $post_data['Ds_Signature'];
-        $signature = $redsys->createMerchantSignatureNotif($this->secret_key, $parameters);
+        $receivedSignature = $postData['Ds_Signature'];
+        $signature = $redsys->createMerchantSignatureNotif($this->secretKey, $parameters);
 
-        if ($signature !== $received_signature) {
-            throw new Payment_Exception("Invalid signature, received '{$received_signature}', expected '{$signature}'");
+        if (strcmp($signature, $receivedSignature) != 0) {
+            throw new Payment_Exception("Invalid signature, received '{$receivedSignature}', expected '{$signature}'");
         }
 
         // Comprobar respuesta
         /*
-         * ﻿0000 a 0099	Transacción autorizada para pagos y preautorizaciones
+         * 0000 a 0099	Transacción autorizada para pagos y preautorizaciones
          * 0900	Transacción autorizada para devoluciones y confirmaciones
          *
          */
         $response = $redsys->getParameter('Ds_Response');
         if ($response >= 101 && $response != 900) {
-            $error_codes = self::error_codes();
+            $error_codes = self::errorCodes();
             $description = isset($error_codes[$response]) ? $error_codes[$response] : 'Unknown response code';
             throw new Payment_Exception("Invalid Ds_Response '{$response}' ({$description})");
         }
 
         // Comprobar cantidad y divisa
         $amount = $redsys->getParameter('Ds_Amount');
-        $currency_code = $redsys->getParameter('Ds_Currency');
+        $currencyCode = $redsys->getParameter('Ds_Currency');
 
-        $currencies = $this->_currency_table();
-        $currency = array_search($currency_code, $currencies);
+        $currencies = $this->_currencyTable();
+        $currency = array_search($currencyCode, $currencies);
 
         if ($currency == 'EUR') { // Para Euros las dos últimas posiciones se consideran decimales
             $amount /= 100;
@@ -188,24 +190,24 @@ class Payment_RedsysTPV extends Payment_Base
 
         // Calcular comisión       
         if (is_numeric($this->fee)) {
-            $fee = self::_ceil_precission($amount * $this->fee, 2);
+            $fee = self::_ceilPrecision($amount * $this->fee, 2);
         } else {
             $fee = call_user_func($this->fee, $amount);
         }
 
         // Comprobar si era una devolución
-        $transaction_type = $redsys->getParameter('Ds_TransactionType');
+        $transactionType = $redsys->getParameter('Ds_TransactionType');
 
-        if ($transaction_type == self::TRANSACTION_REFUND) {
+        if ($transactionType == self::TRANSACTION_REFUND) {
             throw new Payment_Exception('Payment refunded', Payment_Exception::REASON_REFUND);
-        } elseif ($transaction_type != self::TRANSACTION_PAYMENT) {
-            throw new Payment_Exception("Invalid transaction type, received '{$transaction_type}', expected '" . self::TRANSACTION_PAYMENT . "'");
+        } elseif ($transactionType != self::TRANSACTION_PAYMENT) {
+            throw new Payment_Exception("Invalid transaction type, received '{$transactionType}', expected '" . self::TRANSACTION_PAYMENT . "'");
         }
 
         return true;
     }
 
-    protected function _currency_table()
+    protected function _currencyTable()
     {
         return [
             'EUR' => 978,
@@ -216,10 +218,10 @@ class Payment_RedsysTPV extends Payment_Base
         ];
     }
 
-    public static function error_codes()
+    public static function errorCodes()
     {
         return [
-            //Códigos de respuesta para terminales basados en sha256
+            // Códigos de respuesta para terminales basados en sha256
             'SIS0429' => 'Error en la versión enviada por el comercio en el parámetro Ds_SignatureVersion.',
             'SIS0430' => 'Error al decodificar el parámetro Ds_MerchantParameters.',
             'SIS0431' => 'Error del objeto JSON que se envía codificado en el parámetro Ds_MerchantParameters.',
@@ -227,7 +229,7 @@ class Payment_RedsysTPV extends Payment_Base
             'SIS0433' => 'Error Terminal del comercio erróneo.',
             'SIS0434' => 'Error ausencia de número de pedido en la operación enviada por el comercio.',
             'SIS0435' => 'Error en el cálculo de la firma.',
-            //Códigos de respuesta restantes y de terminales basados en sha1
+            // Códigos de respuesta restantes y de terminales basados en sha1
             '0101'    => 'Tarjeta Caducada.',
             '0102'    => 'Tarjeta en excepción transitoria o bajo sospecha de fraude.',
             '0104'    => 'Operación no permitida para esa tarjeta o terminal.',

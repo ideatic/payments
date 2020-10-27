@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Herramienta para la gestión de pagos usando formularios "comprar ya" de Paypal
  *
@@ -10,22 +12,22 @@
  */
 class Payment_Paypal extends Payment_Base
 {
-    const TRANSACTION_PAYMENT = '_xclick';
-    const TRANSACTION_SUBSCRIPTION = '_xclick-subscriptions';
-    const TRANSACTION_AUTO_BILLING = '_xclick-auto-billing';
-    const TRANSACTION_DONATION = '_donations';
+    public const TRANSACTION_PAYMENT = '_xclick';
+    public const TRANSACTION_SUBSCRIPTION = '_xclick-subscriptions';
+    public const TRANSACTION_AUTO_BILLING = '_xclick-auto-billing';
+    public const TRANSACTION_DONATION = '_donations';
 
     /**
      * Dirección URL al logo del vendedor, para ser mostrado en la página de pago
      * @var string
      */
-    public $url_logo;
+    public $urlLogo;
 
     /**
      * Texto mostrado al usuario cuando finaliza el pago
      * @var string
      */
-    public $return_text;
+    public $returnText;
 
     /**
      * Callback para la búsqueda de un ID de transacción.
@@ -33,7 +35,7 @@ class Payment_Paypal extends Payment_Base
      * Este es un campo opcional, aunque recomendable para aumentar la seguridad de las transacciones.
      * @var callable
      */
-    public $find_txnid_callback;
+    public $findTxnIdCallback;
 
 
     /**
@@ -42,17 +44,17 @@ class Payment_Paypal extends Payment_Base
      * Este es un campo opcional, aunque recomendable para aumentar la seguridad de las transacciones.
      * @var callable
      */
-    public $store_txnid_callback;
+    public $storeTxnIdCallback;
 
     /**
-     * @param string $app_name
+     * @param string $appName
      * @param bool   $sandbox Valor que indica si la petición será ejecuta en el modo sandbox de Paypal, que permite hacer pruebas del módulo de pago sin utilizar dinero real
      */
-    public function __construct($app_name, $sandbox = false)
+    public function __construct($appName, bool $sandbox = false)
     {
-        parent::__construct($app_name);
-        $this->url_payment = $sandbox ? 'https://www.sandbox.paypal.com/cgi-bin/webscr' : 'https://www.paypal.com/cgi-bin/webscr';
-        $this->transaction_type = self::TRANSACTION_PAYMENT;
+        parent::__construct($appName);
+        $this->urlPayment = $sandbox ? 'https://www.sandbox.paypal.com/cgi-bin/webscr' : 'https://www.paypal.com/cgi-bin/webscr';
+        $this->transactionType = self::TRANSACTION_PAYMENT;
     }
 
     /**
@@ -61,29 +63,29 @@ class Payment_Paypal extends Payment_Base
      * @return string[]
      * @throws InvalidArgumentException
      */
-    public function fields()
+    public function fields(): array
     {
         $fields = [
-            'cmd'           => $this->transaction_type,
-            'business'      => $this->merchant_id,
+            'cmd'           => $this->transactionType,
+            'business'      => $this->merchantID,
             'amount'        => $this->amount,
             'currency_code' => $this->currency,
             'custom'        => $this->order,
-            'notify_url'    => $this->url_notification,
-            'item_name'     => substr($this->product_description, 0, 125),
+            'notify_url'    => $this->urlNotification,
+            'item_name'     => substr($this->productDescription, 0, 125),
             'no_note'       => 1, //No permitir escribir notas junto al pago,
             'no_shipping'   => 1, //No solicitar dirección de envío,
-            'return'        => $this->url_success,
-            'cancel_return' => $this->url_error,
+            'return'        => $this->urlSuccess,
+            'cancel_return' => $this->urlError,
             'charset'       => 'utf-8',
         ];
 
-        if (!empty($this->url_logo)) {
-            $fields['cpp_logo_image'] = $this->url_logo;
-            $fields['image_url'] = $this->url_logo;
+        if (!empty($this->urlLogo)) {
+            $fields['cpp_logo_image'] = $this->urlLogo;
+            $fields['image_url'] = $this->urlLogo;
         }
-        if (!empty($this->return_text)) {
-            $fields['cbt'] = $this->return_text;
+        if (!empty($this->returnText)) {
+            $fields['cbt'] = $this->returnText;
         }
 
         return $fields;
@@ -92,15 +94,16 @@ class Payment_Paypal extends Payment_Base
     /**
      * Comprueba que la notificación de pago recibida es correcta y auténtica
      *
-     * @param array $post_data Datos POST incluidos con la notificación
+     * @param array|null $postData Datos POST incluidos con la notificación
+     * @param int|float  $fee
      *
-     * @return bool
+     * @return true
      * @throws Payment_Exception
      */
-    public function validate_notification($post_data = null, &$fee = 0)
+    public function validateNotification(array $postData = null, float &$fee = 0): bool
     {
-        if (!isset($post_data)) {
-            $post_data = $_POST;
+        if (!isset($postData)) {
+            $postData = $_POST;
         }
 
         /*Validación de notificación
@@ -120,49 +123,49 @@ Compruebe otros detalles de la transacción como el número de artículo y el pr
 Una vez que haya completado las comprobaciones anteriores, puede actualizar su base de datos con los datos de la IPN y procesar la compra.
 
 Si recibe la notificación "NO VÁLIDO", debe tratarla como sospechosa e investigarla.*/
-        if ($post_data['receiver_email'] != $this->merchant_id) {
-            throw new Payment_Exception("receiver_email != $this->merchant_id");
+        if ($postData['receiver_email'] != $this->merchantID) {
+            throw new Payment_Exception("receiver_email != $this->merchantID");
         }
 
         $refund = false;
-        $status = isset($post_data['payment_status']) ? $post_data['payment_status'] : '';
+        $status = isset($postData['payment_status']) ? $postData['payment_status'] : '';
         if (strcasecmp($status, 'refunded') == 0 || strcasecmp($status, 'reversed') == 0) { // Pago devuelto
             $refund = true;
         } elseif (strcasecmp($status, 'completed') != 0) {
             throw new Payment_Exception("payment_status != 'completed'", $status);
         }
 
-        $expected_gross = $refund ? ($this->amount * -1) : $this->amount;
-        if ($post_data['mc_gross'] != $expected_gross || strcasecmp($post_data['mc_currency'], $this->currency) != 0) {
+        $expectedGross = $refund ? ($this->amount * -1) : $this->amount;
+        if ($postData['mc_gross'] != $expectedGross || strcasecmp($postData['mc_currency'], $this->currency) != 0) {
             throw new Payment_Exception('mc_gross or mc_currency invalid');
         }
 
-        //Realizar validación contra el servidor de Paypal
-        $post_data['cmd'] = '_notify-validate';
+        // Realizar validación contra el servidor de Paypal
+        $postData['cmd'] = '_notify-validate';
 
-        $response = Request::create($this->url_payment)
-                           ->post($post_data)
+        $response = Request::create($this->urlPayment)
+                           ->post($postData)
                            ->execute();
 
         if ($response->status() != 200 || strcasecmp($response->body(), 'VERIFIED') != 0) {
-            $status_code = $response->status();
-            throw new Payment_Exception("Invalid Paypal response #{$status_code}: {$response->body()}");
+            $statusCode = $response->status();
+            throw new Payment_Exception("Invalid Paypal response #{$statusCode}: {$response->body()}");
         }
 
-        $fee = floatval($post_data['mc_fee']);
+        $fee = floatval($postData['mc_fee']);
 
         if ($refund) {
             throw new Payment_Exception('Payment refunded', Payment_Exception::REASON_REFUND);
         }
 
         // Comprobar unicidad y almacenar el ID de Transacción de Paypal
-        if (isset($this->find_txnid_callback, $this->store_txnid_callback)) {
-            $txn_id = $post_data['txn_id'];
-            $found = call_user_func($this->find_txnid_callback, $txn_id);
+        if (isset($this->findTxnIdCallback, $this->storeTxnIdCallback)) {
+            $txn_id = $postData['txn_id'];
+            $found = call_user_func($this->findTxnIdCallback, $txn_id);
             if ($found) {
                 throw new Payment_Exception('Duplicated transaction id (txn_id)', $txn_id);
             } else {
-                call_user_func($this->store_txnid_callback, $txn_id);
+                call_user_func($this->storeTxnIdCallback, $txn_id);
             }
         }
 

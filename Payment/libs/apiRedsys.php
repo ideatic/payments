@@ -1,5 +1,4 @@
 <?php
-
 /**
  * NOTA SOBRE LA LICENCIA DE USO DEL SOFTWARE
  *
@@ -21,6 +20,7 @@
  *
  * Redsys Servicios de Procesamiento, S.L., CIF B85955367
  */
+
 class RedsysAPI
 {
 
@@ -50,18 +50,9 @@ class RedsysAPI
     /******  3DES Function  ******/
     function encrypt_3DES($message, $key)
     {
-        if (PHP_MAJOR_VERSION >= 7) {
-            $l = ceil(strlen($message) / 8) * 8;
-            return substr(openssl_encrypt($message . str_repeat("\0", $l - strlen($message)), 'des-ede3-cbc', $key, OPENSSL_RAW_DATA, "\0\0\0\0\0\0\0\0"), 0, $l);
-        } else {
-            // Se establece un IV por defecto
-            $bytes = [0, 0, 0, 0, 0, 0, 0, 0]; //byte [] IV = {0, 0, 0, 0, 0, 0, 0, 0}
-            $iv = implode(array_map("chr", $bytes)); //PHP 4 >= 4.0.2
-
-            // Se cifra
-            $ciphertext = mcrypt_encrypt(MCRYPT_3DES, $key, $message, MCRYPT_MODE_CBC, $iv); //PHP 4 >= 4.0.2
-            return $ciphertext;
-        }
+        // Se cifra
+        $l = ceil(strlen($message) / 8) * 8;
+        return substr(openssl_encrypt($message . str_repeat("\0", $l - strlen($message)), 'des-ede3-cbc', $key, OPENSSL_RAW_DATA, "\0\0\0\0\0\0\0\0"), 0, $l);
     }
 
     /******  Base64 Functions  ******/
@@ -104,7 +95,7 @@ class RedsysAPI
     /******  Obtener Número de pedido ******/
     function getOrder()
     {
-        $numPedido = "";
+        $numPedido = null;
         if (empty($this->vars_pay['DS_MERCHANT_ORDER'])) {
             $numPedido = $this->vars_pay['Ds_Merchant_Order'];
         } else {
@@ -196,6 +187,8 @@ class RedsysAPI
     {
         // Se decodifican los datos Base64
         $decodec = $this->base64_url_decode($datos);
+        // Los datos decodificados se pasan al array de datos
+        $this->stringToArray($decodec);
         return $decodec;
     }
 
@@ -214,7 +207,6 @@ class RedsysAPI
         // Se codifican los datos Base64
         return $this->base64_url_encode($res);
     }
-
     /******  Notificaciones SOAP ENTRADA ******/
     function createMerchantSignatureNotifSOAPRequest($key, $datos)
     {
@@ -229,7 +221,6 @@ class RedsysAPI
         // Se codifican los datos Base64
         return $this->encodeBase64($res);
     }
-
     /******  Notificaciones SOAP SALIDA ******/
     function createMerchantSignatureNotifSOAPResponse($key, $datos, $numPedido)
     {
@@ -245,4 +236,3 @@ class RedsysAPI
         return $this->encodeBase64($res);
     }
 }
-
