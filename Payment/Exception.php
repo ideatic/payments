@@ -1,10 +1,11 @@
 <?php
+declare(strict_types=1);
 
 class Payment_Exception extends Exception
 {
     protected $_data;
 
-    const REASON_REFUND = 'refund';
+    public const REASON_REFUND = 'refund';
 
     /**
      * @param string $message Mensaje asociado a la excepción (para el desarrollador)

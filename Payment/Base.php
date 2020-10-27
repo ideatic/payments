@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Herramienta para la gestión de pagos desde una aplicación
  */
@@ -27,31 +29,31 @@ abstract class Payment_Base
      * Identificador del comercio (código aportado por el banco para módulos TPV, email de la cuenta de usuario para pagos Paypal)
      * @var string
      */
-    public $merchant_id;
+    public $merchantID;
 
     /**
      * Nombre del comercio
      * @var string
      */
-    public $merchant_name;
+    public $merchantName;
 
     /**
      * Tipo de transacción. Por defecto, un pago único.
      * @var string
      */
-    public $transaction_type;
+    public $transactionType;
 
     /**
      * Nombre del comprador (hasta 60 caracteres)
      * @var string
      */
-    public $buyer_name;
+    public $buyerName;
 
     /**
      * Descripción del producto (hasta 125 caracteres)
      * @var string
      */
-    public $product_description = '';
+    public $productDescription = '';
 
     /**
      * Idioma mostrado al usuario
@@ -63,75 +65,75 @@ abstract class Payment_Base
      * Dirección URL remota desde donde se realiza el pago
      * @var string
      */
-    public $url_payment;
+    public $urlPayment;
 
     /**
      * Dirección URL cargada de manera transparente donde se recibe la notificación del pago.
      * @var string
      */
-    public $url_notification;
+    public $urlNotification;
 
 
     /**
      * Dirección URL cargada cuando se realiza el pago correctamente
      * @var string
      */
-    public $url_success;
+    public $urlSuccess;
 
     /**
      * Dirección URL cargada cuando se produce un error en el pago
      * @var string
      */
-    public $url_error;
+    public $urlError;
 
     /**
      * Texto mostrado en el botón para enviar el formulario (sólo si auto_submit=false o el navegador no soporta javascript)
      * @var string
      */
-    public $default_submit_text = 'Pay now';
+    public $defaultSubmitText = 'Pay now';
 
 
-    public function __construct($app_name, $buyer_name = '')
+    public function __construct($appName, $buyer_name = '')
     {
-        $this->merchant_name = $app_name;
-        $this->buyer_name = $buyer_name;
+        $this->merchantName = $appName;
+        $this->buyerName = $buyer_name;
     }
 
     /**
      * Renderiza un formulario HTML que muestra la pasarela de pago
      *
      * @param string $target
-     * @param bool   $auto_submit
+     * @param bool   $autoSubmit
      * @param array  $attr
      *
      * @return string
      */
-    public function render_form($target = '_top', $auto_submit = true, $attr = [])
+    public function renderForm(string $target = '_top', bool $autoSubmit = true, array $attr = []): string
     {
-        //Generar campos del formulario
+        // Generar campos del formulario
         $fields = [];
         foreach ($this->fields() as $name => $value) {
-            $fields[] = '<input type="hidden" name="' . $name . '" value="' . htmlspecialchars($value) . '"/>';
+            $fields[] = '<input type="hidden" name="' . htmlspecialchars((string)$name) . '" value="' . htmlspecialchars((string)$value) . '"/>';
         }
 
-        //Botón para enviar el formulario si no hay javascript
-        $fields[] = '<noscript><input type="submit" value="' . htmlspecialchars($this->default_submit_text) . '"/></noscript>';
+        // Botón para enviar el formulario si no hay javascript
+        $fields[] = '<noscript><input type="submit" value="' . htmlspecialchars($this->defaultSubmitText) . '"/></noscript>';
 
-        //Generar cabecera y formulario
-        if ($auto_submit && !isset($attr['id'])) {
+        // Generar cabecera y formulario
+        if ($autoSubmit && !isset($attr['id'])) {
             $attr['id'] = 'payment_form_' . mt_rand();
         }
 
-        $html = '<form ' . self::_build_attributes(
+        $html = '<form ' . self::_buildAttributes(
                 $attr + [
                     'target' => $target,
-                    'action' => $this->url_payment,
+                    'action' => $this->urlPayment,
                     'method' => 'post'
                 ]
             ) . '>' . implode('', $fields) . '</form>';
 
-        //Código para autoenvío
-        if ($auto_submit) {
+        // Código para autoenvío
+        if ($autoSubmit) {
             $html .= '<script>document.getElementById(' . json_encode($attr['id']) . ').submit();</script>';
         }
 
@@ -141,33 +143,28 @@ abstract class Payment_Base
     /**
      * Obtiene los campos que deben ser enviados mediante POST a la plataforma de pago
      *
-     * @throws InvalidArgumentException
      * @return string[]
+     * @throws InvalidArgumentException
      */
-    public abstract function fields();
+    public abstract function fields(): array;
 
     /**
      * Comprueba que la notificación de pago recibida es correcta y auténtica
      *
-     * @param array $post_data Datos POST incluidos con la notificación
-     * @param float $fee       Valor completado con la comisión aplicada a la operación
+     * @param array|null $postData Datos POST incluidos con la notificación
+     * @param float      $fee      Valor completado con la comisión aplicada a la operación
      *
      * @return bool
      */
-    public abstract function validate_notification($post_data = null, &$fee = 0);
+    public abstract function validateNotification(array $postData = null, float &$fee = 0): bool;
 
 
     /**
      * Genera una cadena de texto en código HTML con los atributos indicados en el array asociativo
-     * @access private
      *
      * @param array|string $attributes
-     *
-     * @param bool         $escape
-     *
-     * @return string
      */
-    private static function _build_attributes($attributes = '', $escape = true)
+    private static function _buildAttributes($attributes = '', bool $escape = true): string
     {
         if (is_array($attributes)) {
             $atts = '';
@@ -197,7 +194,7 @@ abstract class Payment_Base
         return $attributes;
     }
 
-    protected static function _ceil_precission($value, $precision)
+    protected static function _ceilPrecision($value, $precision)
     {
         $pow = pow(10, $precision);
         return (ceil($pow * $value) + ceil($pow * $value - ceil($pow * $value))) / $pow;
