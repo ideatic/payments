@@ -123,8 +123,8 @@ Compruebe otros detalles de la transacción como el número de artículo y el pr
 Una vez que haya completado las comprobaciones anteriores, puede actualizar su base de datos con los datos de la IPN y procesar la compra.
 
 Si recibe la notificación "NO VÁLIDO", debe tratarla como sospechosa e investigarla.*/
-        if ($postData['receiver_email'] != $this->merchantID) {
-            throw new Payment_Exception("receiver_email != $this->merchantID");
+        if (($postData['receiver_email'] ?? '') != $this->merchantID) {
+            throw new Payment_Exception("receiver_email != {$this->merchantID}", $postData);
         }
 
         $refund = false;
