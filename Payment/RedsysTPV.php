@@ -115,8 +115,8 @@ class Payment_RedsysTPV extends Payment_Base
             $redsys->setParameter('DS_MERCHANT_PayMethods', $this->paymentMethod);
         }
 
-        $redsys->setParameter('DS_MERCHANT_URLOK', $this->urlSuccess);
-        $redsys->setParameter('DS_MERCHANT_URLKO', $this->urlError);
+        $redsys->setParameter('DS_MERCHANT_URLOK', $this->urlSuccess ?? '');
+        $redsys->setParameter('DS_MERCHANT_URLKO', $this->urlError ?? '');
 
         // Devolver campos
         return [
