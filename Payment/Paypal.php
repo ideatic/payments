@@ -57,12 +57,7 @@ class Payment_Paypal extends Payment_Base
         $this->transactionType = self::TRANSACTION_PAYMENT;
     }
 
-    /**
-     * Obtiene los campos que deben ser enviados mediante POST a la plataforma de pago
-     *
-     * @return string[]
-     * @throws InvalidArgumentException
-     */
+    /** @inheritDoc */
     public function fields(): array
     {
         $fields = [
@@ -91,20 +86,10 @@ class Payment_Paypal extends Payment_Base
         return $fields;
     }
 
-    /**
-     * Comprueba que la notificación de pago recibida es correcta y auténtica
-     *
-     * @param array|null $postData Datos POST incluidos con la notificación
-     * @param int|float  $fee
-     *
-     * @return true
-     * @throws Payment_Exception
-     */
+    /** @inheritDoc */
     public function validateNotification(array $postData = null, float &$fee = 0): bool
     {
-        if (!isset($postData)) {
-            $postData = $_POST;
-        }
+        $postData ??= $_POST;
 
         /*Validación de notificación
 
@@ -123,8 +108,8 @@ Compruebe otros detalles de la transacción como el número de artículo y el pr
 Una vez que haya completado las comprobaciones anteriores, puede actualizar su base de datos con los datos de la IPN y procesar la compra.
 
 Si recibe la notificación "NO VÁLIDO", debe tratarla como sospechosa e investigarla.*/
-        if ($postData['receiver_email'] != $this->merchantID) {
-            throw new Payment_Exception("receiver_email != $this->merchantID");
+        if (($postData['receiver_email'] ?? '') != $this->merchantID) {
+            throw new Payment_Exception("receiver_email != {$this->merchantID}", $postData);
         }
 
         $refund = false;
@@ -143,13 +128,10 @@ Si recibe la notificación "NO VÁLIDO", debe tratarla como sospechosa e investi
         // Realizar validación contra el servidor de Paypal
         $postData['cmd'] = '_notify-validate';
 
-        $response = Request::create($this->urlPayment)
-                           ->post($postData)
-                           ->execute();
+        $response = $this->_postRequest($this->urlPayment, $postData);
 
-        if ($response->status() != 200 || strcasecmp($response->body(), 'VERIFIED') != 0) {
-            $statusCode = $response->status();
-            throw new Payment_Exception("Invalid Paypal response #{$statusCode}: {$response->body()}");
+        if ($response['status'] != 200 || strcasecmp($response['body'], 'VERIFIED') != 0) {
+            throw new Payment_Exception("Invalid Paypal response #{$response['status']}: {$response['body']}");
         }
 
         $fee = floatval($postData['mc_fee']);

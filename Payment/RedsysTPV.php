@@ -7,17 +7,6 @@ declare(strict_types=1);
  */
 class Payment_RedsysTPV extends Payment_Base
 {
-    public const TRANSACTION_PAYMENT = '0';
-    public const TRANSACTION_PAYMENT_AUTH = '1';
-    public const TRANSACTION_REFUND = '3';
-    public const TRANSACTION_SUBSCRIPTION = '5';
-
-    /**
-     * Identificador del terminal TPV utilizado
-     * @var string
-     */
-    public $terminal = '001';
-
     /**
      * Campo opcional para el comercio para
      * indicar qué tipo de transacción es. Los
@@ -36,15 +25,24 @@ class Payment_RedsysTPV extends Payment_Base
      * Q - Anulación de autorización en diferido
      * R – Cuota inicial diferido
      * S – Cuota sucesiva diferido
-     * @var string
      */
-    public $transactionType = self::TRANSACTION_PAYMENT;
+    public const TRANSACTION_PAYMENT = '0';
+    public const TRANSACTION_PAYMENT_AUTH = '1';
+    public const TRANSACTION_REFUND = '3';
+    public const TRANSACTION_SUBSCRIPTION = '5';
+
+    public const PAYMENT_METHOD_CARD = null;
+    public const PAYMENT_METHOD_BIZUM = 'z';
 
     /**
-     * Clave secreta proporcionada por el banco para comprobar la integridad de la firma
-     * @var string
+     * Identificador del terminal TPV utilizado
      */
-    public $secretKey;
+    public string $terminal = '001';
+
+    public string|null $paymentMethod = self::PAYMENT_METHOD_CARD;
+
+    /** Clave secreta proporcionada por el banco para comprobar la integridad de la firma  */
+    public string $secretKey;
 
     /**
      * % sobre el total que se aplica de comisión para la operación. Se puede indicar un callable que será el encargado de calcular la comisión
@@ -52,21 +50,17 @@ class Payment_RedsysTPV extends Payment_Base
      */
     public $fee = 0;
 
-    public function __construct($appName, $testMode = false)
+    public function __construct(string $appName, bool $testMode = false)
     {
         parent::__construct($appName);
-        $this->language = '000'; //Autodetectar
+        $this->language = '000'; // Autodetectar
+        $this->transactionType = self::TRANSACTION_PAYMENT;
         $this->urlPayment = $testMode ? 'https://sis-t.redsys.es:25443/sis/realizarPago' : 'https://sis.redsys.es/sis/realizarPago';
 
         require_once dirname(__FILE__) . DIRECTORY_SEPARATOR . 'libs/apiRedsys.php';
     }
 
-    /**
-     * Obtiene los campos que deben ser enviados mediante POST al TPV
-     *
-     * @return array|string
-     * @throws InvalidArgumentException
-     */
+    /** @inheritDoc */
     public function fields(): array
     {
         $amount = number_format((float)$this->amount, 2);
@@ -117,6 +111,10 @@ class Payment_RedsysTPV extends Payment_Base
             $redsys->setParameter('DS_MERCHANT_CONSUMERLANGUAGE', $this->language);
         }
 
+        if (isset($this->paymentMethod)) {
+            $redsys->setParameter('DS_MERCHANT_PayMethods', $this->paymentMethod);
+        }
+
         $redsys->setParameter('DS_MERCHANT_URLOK', $this->urlSuccess);
         $redsys->setParameter('DS_MERCHANT_URLKO', $this->urlError);
 
@@ -128,21 +126,10 @@ class Payment_RedsysTPV extends Payment_Base
         ];
     }
 
-    /**
-     * Comprueba que la notificación de pago recibida es correcta y auténtica
-     *
-     * @param array|null $postData Datos POST incluidos con la notificación
-     * @param int        $fee
-     *
-     * @return bool
-     * @throws Payment_Exception
-     */
+    /** @inheritDoc */
     public function validateNotification(array $postData = null, float &$fee = 0): bool
     {
-        if (!isset($postData)) {
-            $postData = $_POST;
-        }
-
+        $postData ??= $_POST;
         $redsys = new RedsysAPI();
 
         if (!isset($postData['Ds_MerchantParameters']) || !isset($postData['Ds_Signature'])) {
@@ -188,7 +175,7 @@ class Payment_RedsysTPV extends Payment_Base
             throw new Payment_Exception("Invalid amount or currency, received {$amount} {$currency} expected {$this->amount} {$this->currency}");
         }
 
-        // Calcular comisión       
+        // Calcular comisión
         if (is_numeric($this->fee)) {
             $fee = self::_ceilPrecision($amount * $this->fee, 2);
         } else {
@@ -207,7 +194,7 @@ class Payment_RedsysTPV extends Payment_Base
         return true;
     }
 
-    protected function _currencyTable()
+    protected function _currencyTable(): array
     {
         return [
             'EUR' => 978,
@@ -218,7 +205,7 @@ class Payment_RedsysTPV extends Payment_Base
         ];
     }
 
-    public static function errorCodes()
+    public static function errorCodes(): array
     {
         return [
             // Códigos de respuesta para terminales basados en sha256

@@ -7,106 +7,58 @@ declare(strict_types=1);
  */
 abstract class Payment_Base
 {
-    /**
-     * Cantidad a cobrar
-     * @var float
-     */
-    public $amount;
+    /** Cantidad a cobrar */
+    public float|int|string $amount;
 
-    /**
-     * Código ISO 4217 de la divisa (textual, no numérico)
-     * @var string
-     */
-    public $currency = 'EUR';
+    /** Código ISO 4217 de la divisa (textual, no numérico)*/
+    public string $currency = 'EUR';
 
-    /**
-     * Identificador del pedido
-     * @var int
-     */
-    public $order;
+    /** Identificador del pedido */
+    public int $order;
 
-    /**
-     * Identificador del comercio (código aportado por el banco para módulos TPV, email de la cuenta de usuario para pagos Paypal)
-     * @var string
-     */
-    public $merchantID;
+    /** Identificador del comercio (código aportado por el banco para módulos TPV, email de la cuenta de usuario para pagos Paypal) */
+    public string $merchantID;
 
-    /**
-     * Nombre del comercio
-     * @var string
-     */
-    public $merchantName;
+    /** Nombre del comercio */
+    public string $merchantName;
 
-    /**
-     * Tipo de transacción. Por defecto, un pago único.
-     * @var string
-     */
-    public $transactionType;
+    /** Tipo de transacción. Por defecto, un pago único. */
+    public string $transactionType;
 
-    /**
-     * Nombre del comprador (hasta 60 caracteres)
-     * @var string
-     */
-    public $buyerName;
+    /** Nombre del comprador (hasta 60 caracteres) */
+    public string $buyerName;
 
-    /**
-     * Descripción del producto (hasta 125 caracteres)
-     * @var string
-     */
-    public $productDescription = '';
+    /** Descripción del producto (hasta 125 caracteres) */
+    public string $productDescription = '';
 
-    /**
-     * Idioma mostrado al usuario
-     * @var string
-     */
-    public $language;
+    /** Idioma mostrado al usuario */
+    public string $language;
 
-    /**
-     * Dirección URL remota desde donde se realiza el pago
-     * @var string
-     */
-    public $urlPayment;
+    /** Dirección URL remota desde donde se realiza el pago */
+    public string $urlPayment;
 
-    /**
-     * Dirección URL cargada de manera transparente donde se recibe la notificación del pago.
-     * @var string
-     */
-    public $urlNotification;
+    /** Dirección URL cargada de manera transparente donde se recibe la notificación del pago.*/
+    public string $urlNotification;
 
 
-    /**
-     * Dirección URL cargada cuando se realiza el pago correctamente
-     * @var string
-     */
-    public $urlSuccess;
+    /** Dirección URL cargada cuando se realiza el pago correctamente */
+    public string $urlSuccess;
 
-    /**
-     * Dirección URL cargada cuando se produce un error en el pago
-     * @var string
-     */
-    public $urlError;
+    /** Dirección URL cargada cuando se produce un error en el pago */
+    public string $urlError;
 
-    /**
-     * Texto mostrado en el botón para enviar el formulario (sólo si auto_submit=false o el navegador no soporta javascript)
-     * @var string
-     */
-    public $defaultSubmitText = 'Pay now';
+    /** Texto mostrado en el botón para enviar el formulario (sólo si auto_submit=false o el navegador no soporta javascript) */
+    public string $defaultSubmitText = 'Pay now';
 
 
-    public function __construct($appName, $buyer_name = '')
+    public function __construct(string $appName, string $buyerName = '')
     {
         $this->merchantName = $appName;
-        $this->buyerName = $buyer_name;
+        $this->buyerName = $buyerName;
     }
 
     /**
      * Renderiza un formulario HTML que muestra la pasarela de pago
-     *
-     * @param string $target
-     * @param bool   $autoSubmit
-     * @param array  $attr
-     *
-     * @return string
      */
     public function renderForm(string $target = '_top', bool $autoSubmit = true, array $attr = []): string
     {
@@ -143,7 +95,7 @@ abstract class Payment_Base
     /**
      * Obtiene los campos que deben ser enviados mediante POST a la plataforma de pago
      *
-     * @return string[]
+     * @return array<string, string>
      * @throws InvalidArgumentException
      */
     public abstract function fields(): array;
@@ -158,13 +110,31 @@ abstract class Payment_Base
      */
     public abstract function validateNotification(array $postData = null, float &$fee = 0): bool;
 
+    /**
+     * Realiza una petición POST a una URL
+     * @return array{status: int, body: string}
+     */
+    protected function _postRequest(string $url, array $postData): array
+    {
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+
+        $body = curl_exec($ch);
+        $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+        curl_close($ch);
+
+        return ['status' => $statusCode, 'body' => $body];
+    }
 
     /**
      * Genera una cadena de texto en código HTML con los atributos indicados en el array asociativo
-     *
-     * @param array|string $attributes
      */
-    private static function _buildAttributes($attributes = '', bool $escape = true): string
+    private static function _buildAttributes(array|string $attributes = '', bool $escape = true): string
     {
         if (is_array($attributes)) {
             $atts = '';
@@ -194,7 +164,7 @@ abstract class Payment_Base
         return $attributes;
     }
 
-    protected static function _ceilPrecision($value, $precision)
+    protected static function _ceilPrecision(int|float $value, int $precision): int|float
     {
         $pow = pow(10, $precision);
         return (ceil($pow * $value) + ceil($pow * $value - ceil($pow * $value))) / $pow;
