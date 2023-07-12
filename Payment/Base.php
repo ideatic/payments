@@ -59,6 +59,8 @@ abstract class Payment_Base
 
     /**
      * Renderiza un formulario HTML que muestra la pasarela de pago
+     *
+     * @param array<string, mixed> $attr Atributos HTML del formulario
      */
     public function renderForm(string $target = '_top', bool $autoSubmit = true, array $attr = []): string
     {
@@ -103,10 +105,8 @@ abstract class Payment_Base
     /**
      * Comprueba que la notificación de pago recibida es correcta y auténtica
      *
-     * @param array|null $postData Datos POST incluidos con la notificación
-     * @param float      $fee      Valor completado con la comisión aplicada a la operación
-     *
-     * @return bool
+     * @param array<string|mixed>|null $postData Datos POST incluidos con la notificación
+     * @param float                    $fee      Valor completado con la comisión aplicada a la operación
      */
     public abstract function validateNotification(array $postData = null, float &$fee = 0): bool;
 
@@ -133,6 +133,8 @@ abstract class Payment_Base
 
     /**
      * Genera una cadena de texto en código HTML con los atributos indicados en el array asociativo
+     *
+     * @param array<string, mixed>|string $attributes
      */
     private static function _buildAttributes(array|string $attributes = '', bool $escape = true): string
     {

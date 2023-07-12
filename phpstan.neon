@@ -1,0 +1,26 @@
+parameters:
+  level: 6
+  paths:
+    - ./
+  scanDirectories:
+    - Payment
+  treatPhpDocTypesAsCertain: false
+  polluteScopeWithLoopInitialAssignments: false
+  polluteScopeWithAlwaysIterableForeach: false
+  checkAlwaysTrueCheckTypeFunctionCall: true
+  checkAlwaysTrueInstanceof: true
+  checkAlwaysTrueStrictComparison: true
+  checkAlwaysTrueLooseComparison: true
+  checkDynamicProperties: %featureToggles.bleedingEdge%
+  checkExplicitMixedMissingReturn: true
+  checkFunctionNameCase: true
+  checkInternalClassCaseSensitivity: true
+  reportMaybesInMethodSignatures: true
+  reportStaticMethodSignatures: true
+  reportMaybesInPropertyPhpDocTypes: true
+  excludePaths:
+    - Payment/libs/*
+  bootstrapFiles:
+    - Payment/libs/apiRedsys.php
+  parallel:
+    processTimeout: 300.0

@@ -19,21 +19,19 @@ class Payment_Paypal extends Payment_Base
 
     /**
      * Dirección URL al logo del vendedor, para ser mostrado en la página de pago
-     * @var string
      */
-    public $urlLogo;
+    public string $urlLogo;
 
     /**
      * Texto mostrado al usuario cuando finaliza el pago
-     * @var string
      */
-    public $returnText;
+    public string $returnText;
 
     /**
      * Callback para la búsqueda de un ID de transacción.
      * El delegado recibirá como parámetro el ID a buscar, y devolver true si éste existe o false en caso contrario.
      * Este es un campo opcional, aunque recomendable para aumentar la seguridad de las transacciones.
-     * @var callable
+     * @var callable|null
      */
     public $findTxnIdCallback;
 
@@ -42,7 +40,7 @@ class Payment_Paypal extends Payment_Base
      * Callback para el almacenado de un ID de transacción.
      * El delegado recibirá como parámetro la ID de transacción al almacenar (de un tamaño de 19 bytes).
      * Este es un campo opcional, aunque recomendable para aumentar la seguridad de las transacciones.
-     * @var callable
+     * @var callable|null
      */
     public $storeTxnIdCallback;
 
