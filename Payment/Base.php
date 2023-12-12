@@ -112,6 +112,9 @@ abstract class Payment_Base
 
     /**
      * Realiza una petición POST a una URL
+     *
+     * @param array<string, mixed> $postData
+     *
      * @return array{status: int, body: string}
      */
     protected function _postRequest(string $url, array $postData): array

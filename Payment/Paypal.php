@@ -35,7 +35,6 @@ class Payment_Paypal extends Payment_Base
      */
     public $findTxnIdCallback;
 
-
     /**
      * Callback para el almacenado de un ID de transacción.
      * El delegado recibirá como parámetro la ID de transacción al almacenar (de un tamaño de 19 bytes).
@@ -45,10 +44,9 @@ class Payment_Paypal extends Payment_Base
     public $storeTxnIdCallback;
 
     /**
-     * @param string $appName
      * @param bool   $sandbox Valor que indica si la petición será ejecuta en el modo sandbox de Paypal, que permite hacer pruebas del módulo de pago sin utilizar dinero real
      */
-    public function __construct($appName, bool $sandbox = false)
+    public function __construct(string $appName, bool $sandbox = false)
     {
         parent::__construct($appName);
         $this->urlPayment = $sandbox ? 'https://www.sandbox.paypal.com/cgi-bin/webscr' : 'https://www.paypal.com/cgi-bin/webscr';
@@ -66,8 +64,8 @@ class Payment_Paypal extends Payment_Base
             'custom'        => $this->order,
             'notify_url'    => $this->urlNotification,
             'item_name'     => substr($this->productDescription, 0, 125),
-            'no_note'       => 1, //No permitir escribir notas junto al pago,
-            'no_shipping'   => 1, //No solicitar dirección de envío,
+            'no_note'       => 1, // No permitir escribir notas junto al pago,
+            'no_shipping'   => 1, // No solicitar dirección de envío,
             'return'        => $this->urlSuccess,
             'cancel_return' => $this->urlError,
             'charset'       => 'utf-8',
