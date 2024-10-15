@@ -95,7 +95,7 @@ class RedsysAPI
     /******  Obtener Número de pedido ******/
     function getOrder()
     {
-        $numPedido = null;
+        $numPedido = "";
         if (empty($this->vars_pay['DS_MERCHANT_ORDER'])) {
             $numPedido = $this->vars_pay['Ds_Merchant_Order'];
         } else {
@@ -207,6 +207,7 @@ class RedsysAPI
         // Se codifican los datos Base64
         return $this->base64_url_encode($res);
     }
+
     /******  Notificaciones SOAP ENTRADA ******/
     function createMerchantSignatureNotifSOAPRequest($key, $datos)
     {
@@ -221,6 +222,7 @@ class RedsysAPI
         // Se codifican los datos Base64
         return $this->encodeBase64($res);
     }
+
     /******  Notificaciones SOAP SALIDA ******/
     function createMerchantSignatureNotifSOAPResponse($key, $datos, $numPedido)
     {
@@ -236,3 +238,4 @@ class RedsysAPI
         return $this->encodeBase64($res);
     }
 }
+

@@ -40,7 +40,6 @@ abstract class Payment_Base
     /** Dirección URL cargada de manera transparente donde se recibe la notificación del pago.*/
     public string $urlNotification;
 
-
     /** Dirección URL cargada cuando se realiza el pago correctamente */
     public string $urlSuccess;
 
