@@ -6,7 +6,7 @@ class Payment_Exception extends Exception
 {
     protected mixed $_data;
 
-    public const REASON_REFUND = 'refund';
+    public const string REASON_REFUND = 'refund';
 
     /**
      * @param string $message Mensaje asociado a la excepción (para el desarrollador)

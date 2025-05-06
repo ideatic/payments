@@ -12,10 +12,10 @@ declare(strict_types=1);
  */
 class Payment_Paypal extends Payment_Base
 {
-    public const TRANSACTION_PAYMENT = '_xclick';
-    public const TRANSACTION_SUBSCRIPTION = '_xclick-subscriptions';
-    public const TRANSACTION_AUTO_BILLING = '_xclick-auto-billing';
-    public const TRANSACTION_DONATION = '_donations';
+    public const string TRANSACTION_PAYMENT = '_xclick';
+    public const string TRANSACTION_SUBSCRIPTION = '_xclick-subscriptions';
+    public const string TRANSACTION_AUTO_BILLING = '_xclick-auto-billing';
+    public const string TRANSACTION_DONATION = '_donations';
 
     /**
      * Dirección URL al logo del vendedor, para ser mostrado en la página de pago
@@ -28,10 +28,10 @@ class Payment_Paypal extends Payment_Base
     public string $returnText;
 
     /**
-     * Callback para la búsqueda de un ID de transacción.
+     * Callback para la búsqueda de un ID de PayPal de transacción.
      * El delegado recibirá como parámetro el ID a buscar, y devolver true si éste existe o false en caso contrario.
      * Este es un campo opcional, aunque recomendable para aumentar la seguridad de las transacciones.
-     * @var callable|null
+     * @var callable(string|int $txnID): bool|null
      */
     public $findTxnIdCallback;
 
@@ -83,7 +83,7 @@ class Payment_Paypal extends Payment_Base
     }
 
     /** @inheritDoc */
-    public function validateNotification(array $postData = null, float &$fee = 0): bool
+    public function validateNotification(?array $postData = null, float &$fee = 0): bool
     {
         $postData ??= $_POST;
 

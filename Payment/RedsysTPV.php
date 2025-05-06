@@ -203,7 +203,7 @@ class Payment_RedsysTPV extends Payment_Base
     }
 
     /** @inheritDoc */
-    public function validateNotification(array $postData = null, float &$fee = 0): bool
+    public function validateNotification(?array $postData = null, float &$fee = 0): bool
     {
         $postData ??= $_POST;
         $redsys = new RedsysAPI();

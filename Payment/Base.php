@@ -96,7 +96,7 @@ abstract class Payment_Base
     /**
      * Obtiene los campos que deben ser enviados mediante POST a la plataforma de pago
      *
-     * @return array<string, string>
+     * @return array<string, string|int|float>
      * @throws InvalidArgumentException
      */
     public abstract function fields(): array;
@@ -107,7 +107,7 @@ abstract class Payment_Base
      * @param array<string|mixed>|null $postData Datos POST incluidos con la notificación
      * @param float                    $fee      Valor completado con la comisión aplicada a la operación
      */
-    public abstract function validateNotification(array $postData = null, float &$fee = 0): bool;
+    public abstract function validateNotification(?array $postData = null, float &$fee = 0): bool;
 
     /**
      * Realiza una petición POST a una URL
@@ -168,7 +168,7 @@ abstract class Payment_Base
         return $attributes;
     }
 
-    protected static function _ceilPrecision(int|float $value, int $precision): int|float
+    protected static function _ceilPrecision(int|float $value, int $precision): float
     {
         $pow = pow(10, $precision);
         return (ceil($pow * $value) + ceil($pow * $value - ceil($pow * $value))) / $pow;
