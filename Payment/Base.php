@@ -128,8 +128,6 @@ abstract class Payment_Base
         $body = curl_exec($ch);
         $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
-        curl_close($ch);
-
         return ['status' => $statusCode, 'body' => $body];
     }
 
