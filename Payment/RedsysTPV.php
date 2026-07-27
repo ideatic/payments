@@ -236,6 +236,13 @@ class Payment_RedsysTPV extends Payment_Base
             throw new Payment_Exception("Invalid Ds_Response '{$response}' ({$description})");
         }
 
+        // Comprobar número de pedido
+        $receivedOrder = $redsys->getOrderNotif();
+        $expectedOrder = str_pad((string)$this->order, 4, '0', STR_PAD_LEFT);
+        if (!hash_equals($expectedOrder, $receivedOrder)) {
+            throw new Payment_Exception("Notification order mismatch, received '{$receivedOrder}', expected '{$expectedOrder}'");
+        }
+
         // Comprobar cantidad y divisa
         $amount = $redsys->getParameter('Ds_Amount');
         $currencyCode = $redsys->getParameter('Ds_Currency');
